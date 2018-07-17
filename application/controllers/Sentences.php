@@ -1,5 +1,22 @@
 <?hh
 
+define("THRIFT_ROOT", "/home/ubuntu/cpp_projects/im_server3/software/thrift-0.11.0/lib/php/lib/");
+require_once THRIFT_ROOT . "Thrift/ClassLoader/ThriftClassLoader.php";
+
+
+define("THRIFT_GEN", "/home/ubuntu/git_root/www/application/thrift_gen/");
+require_once THRIFT_GEN . 'Something/gen-php/Something.php';
+require_once THRIFT_GEN . 'Something/gen-php/Types.php';
+
+
+use Thrift\ClassLoader\ThriftClassLoader;
+
+use Thrift\Protocol\TBinaryProtocol;
+use Thrift\Transport\TSocket;
+use Thrift\Transport\THttpClient;
+use Thrift\Transport\TFramedTransport;
+use Thrift\Exception\TException;
+
 class Sentences extends CI_Controller {
 
 	public function __construct (): void {
@@ -62,5 +79,30 @@ class Sentences extends CI_Controller {
 					'error_code' => 0,
 					'affacted_rows'=> $affacted_rows,
 					}));
+	}
+
+	public async function testThrift(): Awaitable<void> {
+		// http://192.168.1.111:20001/index.php?c=Sentences&m=testThrift		
+
+		$loader = new ThriftClassLoader();
+		$loader->registerNamespace('Thrift', THRIFT_ROOT);
+		$loader->register();
+
+
+		try {
+			$socket = new TSocket('localhost', 9090);
+			$transport = new TFramedTransport($socket);
+			$protocol = new TBinaryProtocol($transport);
+			$client = new SomethingClient($protocol);
+
+			$transport->open();
+
+			$ret = $client->ping();
+
+			$transport->close();
+
+		} catch (TException $tx) {
+			print 'TException: '.$tx->getMessage()."\n";
+		}
 	}
 }
